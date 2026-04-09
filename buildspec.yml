@@ -10,14 +10,23 @@ phases:
       nodejs: 18
       python: 3.11
     commands:
-      - echo "Installing ATX CLI..."
-      - npm install -g @aws/atx-cli || true
+      - echo "Preparing environment..."
+      - echo "Listing root files"
+      - ls -la
+
+      - echo "Installing ATX from repository..."
+      - chmod +x atx
+      - mv atx /usr/local/bin/atx
+
+      - echo "Validating ATX installation..."
+      - which atx
       - atx --version
 
   pre_build:
     commands:
-      - echo "Listing files..."
+      - echo "Checking project structure..."
       - ls -la
+      - ls -la $PROJECT_PATH
 
   build:
     commands:
@@ -31,4 +40,5 @@ phases:
   post_build:
     commands:
       - echo "Build finished"
+      - echo "Listing all generated files..."
       - ls -R
