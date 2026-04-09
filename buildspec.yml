@@ -1,0 +1,34 @@
+version: 0.2
+
+env:
+  variables:
+    PROJECT_PATH: "./Cisp-master"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+      python: 3.11
+    commands:
+      - echo "Installing ATX CLI..."
+      - npm install -g @aws/atx-cli || true
+      - atx --version
+
+  pre_build:
+    commands:
+      - echo "Listing files..."
+      - ls -la
+
+  build:
+    commands:
+      - echo "Running ATX transformation..."
+      - atx custom def exec \
+        -n COBOL-to-Python-Modernization \
+        -p $PROJECT_PATH \
+        --configuration '{"additionalPlanContext":"Convert COBOL Cisp interpreter to Python preserving behavior"}' \
+        -x -t
+
+  post_build:
+    commands:
+      - echo "Build finished"
+      - ls -R
