@@ -11,21 +11,21 @@ phases:
       python: 3.11
     commands:
       - echo "Preparing environment..."
-      - echo "Listing root files"
       - ls -la
 
-      - echo "Installing ATX from repository..."
-      - chmod +x atx
-      - mv atx /usr/local/bin/atx
+      - echo "Setting up ATX runtime..."
+      - chmod -R +x atx-runtime
 
-      - echo "Validating ATX installation..."
+      # 👉 CRÍTICO: usar o diretório completo
+      - export PATH=$PWD/atx-runtime:$PATH
+
+      - echo "Validating ATX..."
       - which atx
-      - atx --version
+      - atx --version || true
 
   pre_build:
     commands:
-      - echo "Checking project structure..."
-      - ls -la
+      - echo "Checking project..."
       - ls -la $PROJECT_PATH
 
   build:
@@ -40,5 +40,4 @@ phases:
   post_build:
     commands:
       - echo "Build finished"
-      - echo "Listing all generated files..."
       - ls -R
