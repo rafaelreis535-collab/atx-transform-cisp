@@ -15,7 +15,6 @@ phases:
 
       - echo "Setting up ATX runtime..."
       - chmod -R +x atx-runtime
-
       - export PATH=$PWD/atx-runtime:$PATH
 
       - echo "Validating ATX..."
@@ -36,5 +35,12 @@ phases:
   post_build:
     commands:
       - echo "Build finished"
-      - echo "Listing generated files..."
-      - ls -R
+      - echo "Preparing artifacts..."
+      - mkdir -p output
+      - cp -r $PROJECT_PATH output/
+      - ls -R output
+
+artifacts:
+  files:
+    - 'output/**/*'
+  name: atx-transform-output
