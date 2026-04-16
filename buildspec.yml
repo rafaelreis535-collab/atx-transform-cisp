@@ -3,6 +3,15 @@ version: 0.2
 env:
   variables:
     PROJECT_PATH: "./banking-example"
+    MODERNIZATION_API_URL: "https://aic-modernization-api.compass.uol/"
+    MODERNIZATION_OUTPUT_LANGUAGE: "en_US"
+  secrets-manager:
+    MODERNIZATION_API_KEY: "aic-modernization:api-key"
+    MODERNIZATION_ORG_ID: "aic-modernization:org-id"
+  # Optional: Uncomment to use specific LLM provider/model
+  # parameter-store:
+  #   MODERNIZATION_LLM_PROVIDER: "/codebuild/modernization/llm-provider"
+  #   MODERNIZATION_LLM_MODEL: "/codebuild/modernization/llm-model"
 
 phases:
   install:
@@ -12,6 +21,10 @@ phases:
     commands:
       - echo "Preparing environment..."
       - ls -la
+
+      - echo "Installing Python dependencies..."
+      - pip install --upgrade pip
+      - pip install mcp requests pyyaml
 
       - echo "Setting up ATX runtime..."
       - chmod -R +x atx-runtime
@@ -35,9 +48,13 @@ phases:
   post_build:
     commands:
       - echo "Build finished"
+      
+      - echo "Generating documentation via AI Cockpit Modernization API..."
+      - python automate_from_buildspec.py --buildspec ./buildspec.yml --output-dir ./output
+      
       - echo "Preparing artifacts..."
       - mkdir -p output
-      - cp -r $PROJECT_PATH output/
+      - cp -r $PROJECT_PATH output/ || true
       - ls -R output
 
 artifacts:
