@@ -3,9 +3,6 @@ version: 0.2
 env:
   variables:
     PROJECT_PATH: "./banking-example"
-    MODERNIZATION_API_URL: ""
-    MODERNIZATION_API_KEY: ""
-    MODERNIZATION_ORG_ID: ""
 
 phases:
   install:
