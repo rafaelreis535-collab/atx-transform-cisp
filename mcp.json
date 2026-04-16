@@ -3,14 +3,15 @@
     "aic-modernization": {
       "command": "python",
       "args": [
-        "~/mcp/mcp_client.py"
+        "./mcp_client.py"
       ],
       "env": {
-        "MODERNIZATION_API_URL": "",
-        "MODERNIZATION_API_KEY": "",
-        "MODERNIZATION_ORG_ID": "686",
+        "MODERNIZATION_API_URL": "${MODERNIZATION_API_URL}",
+        "MODERNIZATION_API_KEY": "${MODERNIZATION_API_KEY}",
+        "MODERNIZATION_ORG_ID": "${MODERNIZATION_ORG_ID}",
         "MODERNIZATION_LLM_PROVIDER": "anthropic",
-        "MODERNIZATION_LLM_MODEL": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+        "MODERNIZATION_LLM_MODEL": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "MODERNIZATION_OUTPUT_LANGUAGE": "${MODERNIZATION_OUTPUT_LANGUAGE}"
       }
     }
   }

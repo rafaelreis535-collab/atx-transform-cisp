@@ -42,16 +42,23 @@ phases:
 
   build:
     commands:
-      - echo "Running ATX transformation..."
-      - atx custom def exec -n VisualAge-COBOL-to-Java-Modernization -p $PROJECT_PATH --configuration '{"additionalPlanContext":"Convert COBOL to java preserving behavior"}' -x -t
+      - echo "Starting MCP server in background..."
+      - python mcp_client.py > /tmp/mcp_server.log 2>&1 &
+      - MCP_PID=$!
+      - echo "MCP server started with PID $MCP_PID"
+      - sleep 5
+      
+      - echo "Running ATX transformation with documentation generation..."
+      - atx custom def exec -n VisualAge-COBOL-to-Java-Modernization -p $PROJECT_PATH --configuration '{"additionalPlanContext":"Convert COBOL to java preserving behavior. After transformation, use the generate-aic-docs skill to generate full documentation for the codebase."}' -x -t
+      
+      - echo "Stopping MCP server..."
+      - kill $MCP_PID || true
+      - echo "MCP server logs:"
+      - cat /tmp/mcp_server.log || true
 
   post_build:
     commands:
       - echo "Build finished"
-      
-      - echo "Generating documentation via AI Cockpit Modernization API..."
-      - python automate_from_buildspec.py --buildspec ./buildspec.yml --output-dir ./output
-      
       - echo "Preparing artifacts..."
       - mkdir -p output
       - cp -r $PROJECT_PATH output/ || true
