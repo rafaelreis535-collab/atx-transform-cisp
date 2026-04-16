@@ -2,7 +2,10 @@ version: 0.2
 
 env:
   variables:
-    PROJECT_PATH: "./Cisp-master"
+    PROJECT_PATH: "./banking-example"
+    MODERNIZATION_API_URL: ""
+    MODERNIZATION_API_KEY: ""
+    MODERNIZATION_ORG_ID: ""
 
 phases:
   install:
@@ -30,7 +33,7 @@ phases:
   build:
     commands:
       - echo "Running ATX transformation..."
-      - atx custom def exec -n COBOL-to-Python-Modernization -p $PROJECT_PATH --configuration '{"additionalPlanContext":"Convert COBOL Cisp interpreter to Python preserving behavior"}' -x -t
+      - atx custom def exec -n VisualAge-COBOL-to-Java-Modernization -p $PROJECT_PATH --configuration '{"additionalPlanContext":"Convert COBOL to java preserving behavior"}' -x -t
 
   post_build:
     commands:

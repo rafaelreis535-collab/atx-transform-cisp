@@ -1,0 +1,1839 @@
+
+:EZEE 440              04/13/25 15:43:00
+:program   name      = BK1A             
+           date      = '04/13/2025' time = '15:43:00' type = CALLED   
+           workstor  = ZZ01W001
+           mapgroup  = BK1G
+           helpgrp   = BK1GH
+           helpkey   = 01
+           pfequate  = Y     implicit = N  
+           execmode  = NONSEGMENTED
+:mainfun   name      = BK1AP00.
+:emainfun.
+:mainfun   name      = BK1AP01.
+BK1AP01();
+:emainfun.
+:tabrec    name      = ZZ20W01
+           type      = RECORD
+:tabrec    name      = ZZ99W01
+           type      = RECORD
+:tabrec    name      = BK1W001
+           type      = RECORD
+:callparm  name      = BK1W099
+           type      = RECORD
+:prol.
+BKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBK*
+* B
+* K         SISTEMA BANCARIO INTEGRADO - S.B.I.
+* B
+* K     SISTEMA APLICATIVO    : BK - BANKING
+* B     SUB-SISTEMA FUNCIONAL : CONSULTA DE CONTAS
+* K
+* B     APLICACAO(PROGRAMA)   :  BK1A
+* K     FUNCAO                :  CONSULTA CONTA CORRENTE E TRANSACOES
+* B     MAPA(S)               :  BK1M010
+* K     RETORNO               :  MENU BANCARIO
+* B
+* K     ANALISTA              :  BANKING TEAM
+* B     PROGRAMADOR           :  BANKING TEAM
+* K     DATA                  :  13/04/2025
+* B
+KBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKBKB*
+:eprol.
+:genopts   print     = N     fold     = N     lines   = 055
+           validsql  = Y     validloc = Y  
+           mapgrp1   = BK1GH
+           mapgrp2   = BK1G
+           gengrp1   = Y     gengrp2  = Y  
+           jobname   = BANKSIS1
+:targsys   system    = MVSCICS
+:eprogram.
+
+:func      name      = BK1AP00           
+           date      = '04/13/2025' time = '15:43:00' option = EXECUTE  
+           desc      = 'processo principal - inicializacao'
+           refine    = N  
+:before.
+MOVE 1 TO EZEFEC;
+MOVE 1 TO EZECNVCM;
+;
+MOVE 'BK1A' TO ZZ99W01.CODAPL;
+MOVE EZEUSR TO ZZ99W01.USUARIO;
+;
+SET BK1W001 EMPTY;
+SET BK1M010 CLEAR;
+;
+SET BK_ACCOUNTS EMPTY;
+SET BK_TRANSACTIONS EMPTY;
+;
+MOVE BK1W099 TO ZZ01W001;
+;
+MOVE 'ACESSA CONTA' TO BK1W001.W01LT035;
+:ebefore.
+:efunc.
+
+:func      name      = BK1AP01           
+           date      = '04/13/2025' time = '15:43:01' option = EXECUTE  
+           desc      = 'controlador do fluxo principal'
+           refine    = N  
+:before.
+WHILE BK1W001.W01LT035 EQ 'ACESSA CONTA';
+  BK1AP05();                     /* declara cursor bk_accounts
+  BK1AP06();                     /* pesquisa bk_accounts
+END;
+;
+WHILE BK1W001.W01LT035 EQ 'MOSTRA MAPA 010';
+  BK1AP10();                     /* mostra mapa 010
+  BK1AS10();                     /* consiste mapa 010
+END;
+;
+:ebefore.
+:efunc.
+
+:func      name      = BK1AP05           
+           date      = '04/13/2025' time = '15:43:02' option = SETINQ   
+           object    = BK_ACCOUNTS  
+           errrtn    = ZZRCIN2           
+           desc      = 'declara cursor bk_accounts'
+           refine    = N  
+           execbld   = N  
+:before.
+MOVE 'BK1AP05' TO ZZ99W01.PROCESSO;
+MOVE ' ' TO ZZ99W01.CHAVE;
+;
+MOVE BK1W099.NUM_CONTA TO BK_ACCOUNTS.NUM_CONTA;
+;
+:ebefore.
+:after.
+IF ZZ99W01.CHAVE EQ '1';
+  MOVE 'PROBLEMAS NO ACESSO AO BANCO DE DADOS' TO BK1M010.EZEMSG;
+  MOVE 'MOSTRA MAPA 010' TO BK1W001.W01LT035;
+  EZEFLO;
+END;
+;
+:eafter.
+:sql       clause    = SELECT      hostvar = '?'.
+  num_conta, nom_titular, tip_conta, sta_conta,
+  vlr_saldo, vlr_limite, dat_abertura, cod_agencia
+:esql.
+:sql       clause    = INTO      hostvar = '?'.
+ ?NUM_CONTA, ?NOM_TITULAR, ?TIP_CONTA, ?STA_CONTA,
+ ?VLR_SALDO, ?VLR_LIMITE, ?DAT_ABERTURA, ?COD_AGENCIA
+:esql.
+:sql       clause    = WHERE      hostvar = '?'.
+where num_conta = ?NUM_CONTA
+:esql.
+:efunc.
+
+:func      name      = BK1AP06           
+           date      = '04/13/2025' time = '15:43:03' option = SCAN     
+           object    = BK_ACCOUNTS  
+           errrtn    = ZZRCIN1           
+           desc      = 'pesquisa bk_accounts'
+           refine    = N  
+:before.
+MOVE 'BK1AP06' TO ZZ99W01.PROCESSO;
+MOVE ' ' TO ZZ99W01.CHAVE;
+;
+MOVE 1 TO W01IND;
+WHILE BK_ACCOUNTS NOT NRF
+  AND W01IND LT 2;
+:ebefore.
+:after.
+  IF ZZ99W01.CHAVE EQ '1';
+    MOVE 'PROBLEMAS NO ACESSO AO BANCO DE DADOS' TO BK1M010.EZEMSG;
+    MOVE 'MOSTRA MAPA 010' TO BK1W001.W01LT035;
+    EZEFLO;
+  END;
+;
+  IF BK_ACCOUNTS IS NRF
+    AND W01IND EQ 1;
+    MOVE 'CONTA NAO ENCONTRADA' TO BK1M010.EZEMSG;
+    MOVE 'MOSTRA MAPA 010' TO BK1W001.W01LT035;
+    EZEFLO;
+  END;
+;
+  IF BK_ACCOUNTS NOT NRF;
+    MOVE BK_ACCOUNTS.NOM_TITULAR TO BK1W001.NOM_TITULAR;
+    MOVE BK_ACCOUNTS.TIP_CONTA TO BK1W001.TIP_CONTA;
+    MOVE BK_ACCOUNTS.STA_CONTA TO BK1W001.STA_CONTA;
+    MOVE BK_ACCOUNTS.VLR_SALDO TO BK1W001.VLR_SALDO;
+    MOVE BK_ACCOUNTS.VLR_LIMITE TO BK1W001.VLR_LIMITE;
+    MOVE BK_ACCOUNTS.DAT_ABERTURA TO BK1W001.DAT_ABERTURA;
+    MOVE BK_ACCOUNTS.COD_AGENCIA TO BK1W001.COD_AGENCIA;
+;
+    BK1AP07();                   /* declara cursor bk_transactions
+    BK1AP08();                   /* pesquisa bk_transactions
+;
+    BK1AS05();                   /* monta mapa 010
+;
+    W01IND = W01IND + 1;
+  END;
+END;
+;
+MOVE 'MOSTRA MAPA 010' TO BK1W001.W01LT035;
+;
+:eafter.
+:efunc.
+
+:func      name      = BK1AP07           
+           date      = '04/13/2025' time = '15:43:04' option = SETINQ   
+           object    = BK_TRANSACTIONS  
+           errrtn    = ZZRCIN2           
+           desc      = 'declara cursor bk_transactions'
+           refine    = N  
+           execbld   = N  
+:before.
+MOVE 'BK1AP07' TO ZZ99W01.PROCESSO;
+MOVE ' ' TO ZZ99W01.CHAVE;
+;
+MOVE BK1W099.NUM_CONTA TO BK_TRANSACTIONS.NUM_CONTA;
+;
+:ebefore.
+:after.
+IF ZZ99W01.CHAVE EQ '1';
+  MOVE 'PROBLEMAS NO ACESSO AO BANCO DE DADOS' TO BK1M010.EZEMSG;
+  MOVE 'MOSTRA MAPA 010' TO BK1W001.W01LT035;
+  EZEFLO;
+END;
+;
+:eafter.
+:sql       clause    = SELECT      hostvar = '?'.
+  num_conta, num_transacao, dth_transacao,
+  tip_transacao, des_transacao, vlr_transacao, vlr_saldo_apos
+:esql.
+:sql       clause    = INTO      hostvar = '?'.
+ ?NUM_CONTA, ?NUM_TRANSACAO, ?DTH_TRANSACAO,
+ ?TIP_TRANSACAO, ?DES_TRANSACAO, ?VLR_TRANSACAO, ?VLR_SALDO_APOS
+:esql.
+:sql       clause    = WHERE      hostvar = '?'.
+where num_conta = ?NUM_CONTA
+:esql.
+:sql       clause    = ORDERBY      hostvar = '?'.
+ORDER BY dth_transacao DESC
+:esql.
+:efunc.
+
+:func      name      = BK1AP08           
+           date      = '04/13/2025' time = '15:43:05' option = SCAN     
+           object    = BK_TRANSACTIONS  
+           errrtn    = ZZRCIN1           
+           desc      = 'pesquisa bk_transactions'
+           refine    = N  
+:before.
+MOVE 'BK1AP08' TO ZZ99W01.PROCESSO;
+MOVE ' ' TO ZZ99W01.CHAVE;
+;
+MOVE 1 TO W01IND;
+MOVE 1 TO W02IND;
+WHILE BK_TRANSACTIONS NOT NRF
+  AND W01IND LT 301;
+:ebefore.
+:after.
+  IF ZZ99W01.CHAVE EQ '1';
+    MOVE 'PROBLEMAS NO ACESSO AO BANCO DE DADOS' TO BK1M010.EZEMSG;
+    MOVE 'MOSTRA MAPA 010' TO BK1W001.W01LT035;
+    EZEFLO;
+  END;
+;
+  IF BK_TRANSACTIONS NOT NRF;
+    IF W01IND GT 300;
+      MOVE '+ DE 300 TRANSACOES, SERAO MOSTRADAS AS 300 PRIMEIRAS'
+        TO BK1M010.EZEMSG;
+      BK1AS05();                 /* monta mapa 010
+    END;
+;
+    MOVE BK_TRANSACTIONS.NUM_TRANSACAO
+      TO BK1W001.NUM_TRANSACAO[W01IND];
+    MOVE BK_TRANSACTIONS.DTH_TRANSACAO(1:10)
+      TO BK1W001.DTH_TRANSACAO[W01IND];
+    MOVE BK_TRANSACTIONS.TIP_TRANSACAO
+      TO BK1W001.TIP_TRANSACAO[W01IND];
+    MOVE BK_TRANSACTIONS.DES_TRANSACAO
+      TO BK1W001.DES_TRANSACAO[W01IND];
+    MOVE BK_TRANSACTIONS.VLR_TRANSACAO
+      TO BK1W001.VLR_TRANSACAO[W01IND];
+;
+    W01IND = W01IND + 1;
+  END;
+END;
+;
+:eafter.
+:efunc.
+
+:func      name      = BK1AP10           
+           date      = '04/13/2025' time = '15:43:06' option = CONVERSE 
+           object    = BK1M010          
+           desc      = 'mostra mapa 010'
+           refine    = N  
+:before.
+MOVE EZEDTEL TO BK1M010.DATA;
+MOVE EZETIM TO BK1M010.HORA;
+;
+MOVE ZZ01W001.MNUEMP TO BK1M010.MNUEMP;
+MOVE ZZ01W001.NOMSIS TO BK1M010.NOMSIS;
+MOVE ZZ01W001.GRUFUC TO BK1M010.GRUFUC;
+MOVE BK1W099.NUM_CONTA TO BK1M010.NUM_CONTA;
+MOVE BK1W001.NOM_TITULAR TO BK1M010.NOM_TITULAR;
+MOVE BK1W001.TIP_CONTA TO BK1M010.TIP_CONTA;
+MOVE BK1W001.STA_CONTA TO BK1M010.STA_CONTA;
+MOVE BK1W001.VLR_SALDO TO BK1M010.VLR_SALDO;
+MOVE BK1W001.COD_AGENCIA TO BK1M010.COD_AGENCIA;
+;
+:ebefore.
+:efunc.
+
+:func      name      = BK1AS05           
+           date      = '04/13/2025' time = '15:43:07' option = EXECUTE  
+           desc      = 'monta mapa 010 - lista de transacoes'
+           refine    = N  
+:before.
+SET BK1M010 CLEAR;
+;
+MOVEA BK1W001.DTH_TRANSACAO[W02IND] TO BK1M010.DTH_TRANSACAO[1];
+MOVEA BK1W001.TIP_TRANSACAO[W02IND] TO BK1M010.TIP_TRANSACAO[1];
+MOVEA BK1W001.DES_TRANSACAO[W02IND] TO BK1M010.DES_TRANSACAO[1];
+MOVEA BK1W001.VLR_TRANSACAO[W02IND] TO BK1M010.VLR_TRANSACAO[1];
+W02IND = W02IND + EZETST;
+;
+MOVE 'MOSTRA MAPA 010' TO BK1W001.W01LT035;
+EZEFLO;
+:ebefore.
+:efunc.
+
+:func      name      = BK1AS10           
+           date      = '04/13/2025' time = '15:43:08' option = EXECUTE  
+           desc      = 'consiste mapa 010'
+           refine    = N  
+:before.
+IF EZEAID IS PF3;                /* saida para menu principal
+  MOVE 'PF3' TO BK1W099.TECLA;
+  EZECLOS;
+END;
+;
+IF EZEAID IS PF12;               /* cancela operacao
+  MOVE 'PF12' TO BK1W099.TECLA;
+  EZECLOS;
+END;
+;
+IF EZEAID IS PF7;                /* retorna pagina anterior
+  W02IND = W02IND - 12;
+  IF W02IND LT 1;
+    MOVE 1 TO W02IND;
+    MOVE 'NAO HA PAGINA ANTERIOR' TO BK1M010.EZEMSG;
+  ELSE;
+    BK1AS05();                   /* monta mapa 010
+  END;
+;
+  EZEFLO;
+END;
+;
+IF EZEAID IS PF8;                /* avanca proxima pagina
+  IF W02IND GE W01IND;
+    MOVE 'NAO HA PAGINA POSTERIOR' TO BK1M010.EZEMSG;
+  ELSE;
+    BK1AS05();                   /* monta mapa 010
+  END;
+;
+  EZEFLO;
+END;
+;
+IF EZEAID NOT ENTER;
+  MOVE 'TECLA INVALIDA' TO BK1M010.EZEMSG;
+  EZEFLO;
+END;
+;
+MOVE BK1M010.NUM_CONTA TO BK1W099.NUM_CONTA;
+MOVE 'ACESSA CONTA' TO BK1W001.W01LT035;
+EZERTN();
+:ebefore.
+:efunc.
+
+:func      name      = ZZRCIN1           
+           date      = '04/13/2025' time = '15:43:09' option = EXECUTE  
+           desc      = 'TESTE RETURN CODE - LEITURA'
+           refine    = N  
+:before.
+IF EZESQCOD EQ 100;
+  EZERTN();
+ELSE;
+  MOVE EZESQLCA TO ZZ99W01.SQLCA;
+  MOVE ZZ01W001.CODUSU TO ZZ99W01.CODUSU;
+  MOVE ZZ01W001.MNUEMP TO ZZ99W01.MNUEMP;
+  MOVE ZZ01W001.NOMSIS TO ZZ99W01.NOMSIS;
+  MOVE ZZ01W001.GRUFUC TO ZZ99W01.GRUFUC;
+  ;
+  MOVE EZESQRRM TO ZZ99W01.SQLERRMC;
+  IF EZESQCOD EQ -530 OR EZESQCOD EQ -531 OR EZESQCOD EQ -532 OR
+    EZESQCOD EQ -537 OR EZESQCOD EQ -538 OR EZESQCOD EQ -539 OR
+    EZESQCOD EQ -545;
+    MOVE EZESQRRM TO ZZ99W01.SQLERRMC;
+  END;
+  ;
+  CALL ZZ99A ZZ99W01;
+  MOVE '1' TO ZZ99W01.CHAVE;
+END;
+:ebefore.
+:efunc.
+
+:func      name      = ZZRCIN2           
+           date      = '04/13/2025' time = '15:43:10' option = EXECUTE  
+           desc      = 'TESTE RETURN CODE - LEITURA SETINQ'
+           refine    = N  
+:before.
+MOVE EZESQLCA TO ZZ99W01.SQLCA;
+MOVE ZZ01W001.CODUSU TO ZZ99W01.CODUSU;
+MOVE ZZ01W001.MNUEMP TO ZZ99W01.MNUEMP;
+MOVE ZZ01W001.NOMSIS TO ZZ99W01.NOMSIS;
+MOVE ZZ01W001.GRUFUC TO ZZ99W01.GRUFUC;
+;
+IF EZESQCOD EQ -530 OR EZESQCOD EQ -531 OR EZESQCOD EQ -532 OR
+  EZESQCOD EQ -537 OR EZESQCOD EQ -538 OR EZESQCOD EQ -539 OR
+  EZESQCOD EQ -545;
+  MOVE EZESQRRM TO ZZ99W01.SQLERRMC;
+END;
+;
+CALL ZZ99A ZZ99W01;
+MOVE '1' TO ZZ99W01.CHAVE;
+:ebefore.
+:efunc.
+
+:record    name      = BK_ACCOUNTS
+           date      = '04/13/2025'        time = '15:43:11'
+           org       = SQLROW
+           usage     = SHARED
+:sqltable  tableid   = 'banking.bk_accounts'
+           tblnhvar  = N  
+           label     = 'T1'
+:recditem  name      = NUM_CONTA
+           usage     = SHARED
+           colname   = 'NUM_CONTA'
+           readonly  = N               key  = Y 
+:recditem  name      = NOM_TITULAR
+           usage     = SHARED
+           colname   = 'NOM_TITULAR'
+           readonly  = N               key  = N 
+:recditem  name      = TIP_CONTA
+           usage     = SHARED
+           colname   = 'TIP_CONTA'
+           datacode  = 453
+           readonly  = N               key  = N 
+:recditem  name      = STA_CONTA
+           usage     = SHARED
+           colname   = 'STA_CONTA'
+           datacode  = 453
+           readonly  = N               key  = N 
+:recditem  name      = VLR_SALDO
+           usage     = SHARED
+           colname   = 'VLR_SALDO'
+           readonly  = N               key  = N 
+:recditem  name      = VLR_LIMITE
+           usage     = SHARED
+           colname   = 'VLR_LIMITE'
+           readonly  = N               key  = N 
+:recditem  name      = DAT_ABERTURA
+           usage     = SHARED
+           colname   = 'DAT_ABERTURA'
+           datacode  = 453
+           readonly  = N               key  = N 
+:recditem  name      = COD_AGENCIA
+           usage     = SHARED
+           colname   = 'COD_AGENCIA'
+           readonly  = N               key  = N 
+:erecord.
+
+:record    name      = BK_TRANSACTIONS
+           date      = '04/13/2025'        time = '15:43:12'
+           org       = SQLROW
+           usage     = SHARED
+:sqltable  tableid   = 'banking.bk_transactions'
+           tblnhvar  = N  
+           label     = 'T2'
+:recditem  name      = NUM_CONTA
+           usage     = SHARED
+           colname   = 'NUM_CONTA'
+           readonly  = N               key  = N 
+:recditem  name      = NUM_TRANSACAO
+           usage     = SHARED
+           colname   = 'NUM_TRANSACAO'
+           readonly  = N               key  = Y 
+:recditem  name      = DTH_TRANSACAO
+           usage     = SHARED
+           colname   = 'DTH_TRANSACAO'
+           datacode  = 453
+           readonly  = N               key  = N 
+:recditem  name      = TIP_TRANSACAO
+           usage     = SHARED
+           colname   = 'TIP_TRANSACAO'
+           datacode  = 453
+           readonly  = N               key  = N 
+:recditem  name      = DES_TRANSACAO
+           usage     = SHARED
+           colname   = 'DES_TRANSACAO'
+           datacode  = 453
+           readonly  = N               key  = N 
+:recditem  name      = VLR_TRANSACAO
+           usage     = SHARED
+           colname   = 'VLR_TRANSACAO'
+           readonly  = N               key  = N 
+:recditem  name      = VLR_SALDO_APOS
+           usage     = SHARED
+           colname   = 'VLR_SALDO_APOS'
+           readonly  = N               key  = N 
+:erecord.
+
+:record    name      = BK1W001
+           date      = '04/13/2025'        time = '15:43:13'
+           org       = WORKSTOR
+           usage     = SHARED
+:recditem  name      = W01LT035
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00035
+           decimals  = 00             evensql = N 
+           desc      = 'literal de controle de fluxo'
+:recditem  name      = W01IND
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+           desc      = 'indice de carga de transacoes'
+:recditem  name      = W02IND
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+           desc      = 'indice de exibicao de transacoes'
+:recditem  name      = W03IND
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+           desc      = 'indice auxiliar'
+:recditem  name      = NOM_TITULAR
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00050
+           decimals  = 00             evensql = N 
+           desc      = 'nome do titular da conta'
+:recditem  name      = TIP_CONTA
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00002
+           decimals  = 00             evensql = N 
+           desc      = 'tipo da conta: CC=corrente, CP=poupanca'
+:recditem  name      = STA_CONTA
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00001
+           decimals  = 00             evensql = N 
+           desc      = 'status da conta: A=ativa, B=bloqueada'
+:recditem  name      = VLR_SALDO
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = PACK  
+           bytes     = 00009
+           decimals  = 02             evensql = N 
+           desc      = 'saldo atual da conta'
+:recditem  name      = VLR_LIMITE
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = PACK  
+           bytes     = 00009
+           decimals  = 02             evensql = N 
+           desc      = 'limite de credito'
+:recditem  name      = DAT_ABERTURA
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00010
+           decimals  = 00             evensql = N 
+           desc      = 'data de abertura da conta'
+:recditem  name      = COD_AGENCIA
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = BIN   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+           desc      = 'codigo da agencia'
+:recditem  name      = NUM_TRANSACAO
+           level     = 10             occurs = 00300
+           usage     = NONSHARED
+           type      = BIN   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+           desc      = 'numero da transacao'
+:recditem  name      = DTH_TRANSACAO
+           level     = 10             occurs = 00300
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00010
+           decimals  = 00             evensql = N 
+           desc      = 'data da transacao'
+:recditem  name      = TIP_TRANSACAO
+           level     = 10             occurs = 00300
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00001
+           decimals  = 00             evensql = N 
+           desc      = 'tipo: C=credito, D=debito'
+:recditem  name      = DES_TRANSACAO
+           level     = 10             occurs = 00300
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00040
+           decimals  = 00             evensql = N 
+           desc      = 'descricao da transacao'
+:recditem  name      = VLR_TRANSACAO
+           level     = 10             occurs = 00300
+           usage     = NONSHARED
+           type      = PACK  
+           bytes     = 00009
+           decimals  = 02             evensql = N 
+           desc      = 'valor da transacao'
+:erecord.
+
+:record    name      = BK1W099
+           date      = '04/13/2025'        time = '15:43:14'
+           org       = WORKSTOR
+           usage     = SHARED
+:recditem  name      = MNUEMP
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00015
+           decimals  = 00             evensql = N 
+           desc      = 'MNEMONICO DA EMPRESA'
+:recditem  name      = NOMSIS
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00032
+           decimals  = 00             evensql = N 
+           desc      = 'NOME DO SISTEMA'
+:recditem  name      = GRUFUC
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00064
+           decimals  = 00             evensql = N 
+           desc      = 'NOME DO GRUPO/FUNCAO'
+:recditem  name      = TECLA
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00005
+           decimals  = 00             evensql = N 
+           desc      = 'tecla de funcao pressionada'
+:recditem  name      = NUM_CONTA
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = BIN   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+           desc      = 'numero da conta corrente'
+:r
+ecditem  name      = W01P0300
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = PACK  
+           bytes     = 00002
+           decimals  = 00             evensql = N 
+:recditem  name      = W01A0077
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00077
+           decimals  = 00             evensql = N 
+:erecord.
+
+:record    name      = ZZ01W001
+           date      = '04/13/2025'        time = '15:43:15'
+           org       = WORKSTOR
+           usage     = SHARED
+:recditem  name      = CODAPL
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODSIS
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SUBSIS
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODGRU
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SUBGRU
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODITE
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SUBITE
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SH3APPL
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = ASAPPL
+           level     = 15             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SH3LIT
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = ASLIT
+           level     = 15             occurs = 00001
+           usage     = SHARED
+:recditem  name      = NOMSIS
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = GRUFUC
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = MNUEMP
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODUSU
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODEMP
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = USERID
+           level     = 77             occurs = 00001
+           usage     = SHARED
+:recditem  name      = PASSWORD
+           level     = 77             occurs = 00001
+           usage     = SHARED
+:recditem  name      = DATABASE
+           level     = 77             occurs = 00001
+           usage     = SHARED
+:erecord.
+
+:record    name      = ZZ20W01
+           date      = '04/13/2025'        time = '15:43:15'
+           org       = WORKSTOR
+           usage     = NONSHARED
+:recditem  name      = W01DTDB
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00010
+           decimals  = 00             evensql = N 
+:recditem  name      = W01YYYYDB
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+:recditem  name      = W01TRACO1
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00001
+           decimals  = 00             evensql = N 
+:recditem  name      = W01MMDB
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00002
+           decimals  = 00             evensql = N 
+:recditem  name      = W01TRACO2
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00001
+           decimals  = 00             evensql = N 
+:recditem  name      = W01DDDB
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00002
+           decimals  = 00             evensql = N 
+:recditem  name      = W01DTTELA
+           level     = 10             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00010
+           decimals  = 00             evensql = N 
+:recditem  name      = W01ZEROS
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00002
+           decimals  = 00             evensql = N 
+:recditem  name      = W01YYYYTELA
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00004
+           decimals  = 00             evensql = N 
+:recditem  name      = W01MMTELA
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00002
+           decimals  = 00             evensql = N 
+:recditem  name      = W01DDTELA
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = NUM   
+           bytes     = 00002
+           decimals  = 00             evensql = N 
+:erecord.
+
+:record    name      = ZZ99W01
+           date      = '04/13/2025'        time = '15:43:16'
+           org       = WORKSTOR
+           usage     = SHARED
+:prol.
+* *--------------------------------------------------------*
+* I*                                                       I
+* I      WORK AREA PARA APLICACOES DO SISTEMA BANCARIO     I
+* I      INTEGRADO - S.B.I.                                I
+* I                                                        I
+* I     BK1A - CONSULTA CONTA CORRENTE                     I
+* I     BK2A - EXTRATO DETALHADO                           I
+* I     BK3A - TRANSFERENCIA ENTRE CONTAS                  I
+* I     BK4A - PAGAMENTO DE CONTAS                         I
+* I                                                        I
+* *--------------------------------------------------------*
+:eprol.
+:recditem  name      = SQLCA
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLCAID
+           level     = 05             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLCABC
+           level     = 05             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLCODE
+           level     = 05             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLERRM
+           level     = 05             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLERRML
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLERRMC
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODUSU
+           level     = 15             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODUSO
+           level     = 20             occurs = 00008
+           usage     = SHARED
+:recditem  name      = *
+           level     = 15             occurs = 00001
+           usage     = NONSHARED
+           type      = CHA   
+           bytes     = 00062
+           decimals  = 00             evensql = N 
+:recditem  name      = SQLERRP
+           level     = 05             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLERRD
+           level     = 05             occurs = 00006
+           usage     = SHARED
+:recditem  name      = SQLWARN
+           level     = 05             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN0
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN1
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN2
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN3
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN4
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN5
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN6
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN7
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN8
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARN9
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLWARNA
+           level     = 10             occurs = 00001
+           usage     = SHARED
+:recditem  name      = SQLEXT
+           level     = 05             occurs = 00001
+           usage     = SHARED
+:recditem  name      = PROCESSO
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CODAPL
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:recditem  name      = USUARIO
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:recditem  name      = MNUEMP
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:recditem  name      = NOMSIS
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:recditem  name      = GRUFUC
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:recditem  name      = CHAVE
+           level     = 03             occurs = 00001
+           usage     = SHARED
+:erecord.
+
+:map       grpname   = BK1G        mapname = BK1M010
+           date      = '04/13/2025'        time = '15:43:17'
+           mapsize   = 024 079     startpos = 0001 0001
+           devices   = 3278-2  3278-2B
+:present   varfold   = Y      deffold  = Y  
+           tabpos    = 1 
+:vfield    row       = 001    column = 002
+           type      = CHA    bytes  = 00015
+           name      = MNUEMP
+           desc      = 'MNEMONICO DA EMPRESA'
+           editordr  = 010
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = UNPROTECT 
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = Y  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 001    column = 018
+           type      = CHA    bytes  = 00038
+.  SISTEMA BANCARIO INTEGRADO - S.B.I.
+:cattr     hilite    = NOHILITE  intense = BRIGHT  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 001    column = 057
+           type      = NUM    bytes  = 00010
+           name      = DATA
+           editordr  = 001
+:mapedits  fillchar  = '0'
+           inputreq  = N    justify = RIG
+           dateform  = 'DD/MM/YYYY'
+           currsymb  = N    sign = N       numsep = N  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 001    column = 068
+           type      = CHA    bytes  = 00012
+.  BK1M010
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 002    column = 025
+           type      = CHA    bytes  = 00032
+           name      = NOMSIS
+           editordr  = 002
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = N  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 002    column = 059
+           type      = CHA    bytes  = 00008
+           name      = HORA
+           desc      = 'campo de hora do sistema'
+           editordr  = 003
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = LEF
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 003    column = 008
+           type      = CHA    bytes  = 00064
+           name      = GRUFUC
+           editordr  = 004
+.                   CONSULTA DE CONTA CORRENTE
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = N  
+:vattr     hilite    = NOHILITE  intense = BRIGHT  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 005    column = 002
+           type      = CHA    bytes  = 00009
+. CONTA..:
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 005    column = 012
+           type      = NUM    bytes  = 00009
+           name      = NUM_CONTA
+           desc      = 'numero da conta corrente'
+           editordr  = 006
+:mapedits  fillchar  = '0'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:vattr     hilite    = NOHILITE  intense = BRIGHT  protect = UNPROTECT 
+           color     = MONO         data = NUM    
+           enter     = Y  mdt = N  fill = N  cursor = Y  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 005    column = 022
+           type      = CHA    bytes  = 00010
+. TITULAR:
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 005    column = 032
+           type      = CHA    bytes  = 00047
+           name      = NOM_TITULAR
+           desc      = 'nome do titular da conta'
+           editordr  = 007
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = N  
+:vattr     hilite    = NOHILITE  intense = BRIGHT  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 006    column = 002
+           type      = CHA    bytes  = 00008
+. TIPO..:
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 006    column = 010
+           type      = CHA    bytes  = 00002
+           name      = TIP_CONTA
+           desc      = 'tipo da conta'
+           editordr  = 008
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 006    column = 013
+           type      = CHA    bytes  = 00008
+. STATUS:
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 006    column = 021
+           type      = CHA    bytes  = 00001
+           name      = STA_CONTA
+           desc      = 'status da conta'
+           editordr  = 009
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 006    column = 023
+           type      = CHA    bytes  = 00008
+. SALDO.:
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 006    column = 031
+           type      = NUM    bytes  = 00015
+           name      = VLR_SALDO
+           desc      = 'saldo atual da conta'
+           editordr  = 011
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = BRIGHT  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 006    column = 047
+           type      = CHA    bytes  = 00010
+. AGENCIA:
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 006    column = 057
+           type      = NUM    bytes  = 00006
+           name      = COD_AGENCIA
+           desc      = 'codigo da agencia'
+           editordr  = 012
+:mapedits  fillchar  = '0'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 007    column = 002
+           type      = CHA    bytes  = 00078
+. DATA       TP  DESCRICAO                                VALOR
+:cattr     hilite    = NOHILITE  intense = BRIGHT  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 008    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0001
+           desc      = 'data da transacao'
+           editordr  = 013
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 008    column = 013
+           type      = CHA    bytes  = 00000
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 008    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0001
+           editordr  = 014
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 008    column = 016
+           type      = CHA    bytes  = 00000
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 008    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0001
+           editordr  = 015
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 008    column = 058
+           type      = CHA    bytes  = 00000
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 008    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0001
+           editordr  = 016
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 009    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0002
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 009    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0002
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 009    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0002
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 009    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0002
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 010    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0003
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 010    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0003
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 010    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0003
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 010    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0003
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 011    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0004
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 011    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0004
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 011    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0004
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 011    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0004
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 012    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0005
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 012    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0005
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 012    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0005
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 012    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0005
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 013    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0006
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 013    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0006
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 013    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0006
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 013    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0006
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 014    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0007
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 014    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0007
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 014    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0007
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 014    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0007
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 015    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0008
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 015    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0008
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 015    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0008
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 015    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0008
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 016    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0009
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 016    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0009
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 016    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0009
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 016    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0009
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 017    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0010
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 017    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0010
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 017    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0010
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 017    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0010
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 018    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0011
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 018    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0011
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 018    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0011
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 018    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0011
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 019    column = 002
+           type      = CHA    bytes  = 00010
+           name      = DTH_TRANSACAO
+           index     = 0012
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 019    column = 014
+           type      = CHA    bytes  = 00001
+           name      = TIP_TRANSACAO
+           index     = 0012
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 019    column = 017
+           type      = CHA    bytes  = 00040
+           name      = DES_TRANSACAO
+           index     = 0012
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:vfield    row       = 019    column = 059
+           type      = NUM    bytes  = 00015
+           name      = VLR_TRANSACAO
+           index     = 0012
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = Y  
+:vattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 020    column = 002
+           type      = CHA    bytes  = 00078
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:vfield    row       = 022    column = 001
+           type      = CHA    bytes  = 00077
+           name      = EZEMSG
+           desc      = 'campo de mensagens (sistema)'
+           editordr  = 005
+:vattr     hilite    = NOHILITE  intense = BRIGHT  protect = PROTECT   
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:evfield.
+:cfield    row       = 022    column = 079
+           type      = CHA    bytes  = 00159
+. F1 - AJUDA   F2 -         F3 - SAIDA   F4 -         F5 -         F6 -X
+           F7 - RETORNA F8 - AVANCA  F9 -         F10-         F11-     X
+     F12- CANCELA
+:cattr     hilite    = NOHILITE  intense = NORMAL  protect = ASKIP     
+           color     = MONO         data = ALPHA  
+           enter     = N  mdt = N  fill = N  cursor = N  detect = N 
+           outline   = NOUTLINE 
+:ecfield.
+:emap.
+
+:item      name      = ASAPPL
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00002      decimals = 00     evensql = N  
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = ASLIT
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00017      decimals = 00     evensql = N  
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = CHAVE
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00001      decimals = 00     evensql = N  
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = COD_AGENCIA
+           date      = '04/13/2025' time = '15:43:18' type = BIN 
+           bytes     = 00004      decimals = 00     evensql = N  
+           desc      = 'CODIGO DA AGENCIA'
+:mapedits  fillchar  = '0'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:eitem.
+
+:item      name      = CODAPL
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00008      decimals = 00     evensql = N  
+           desc      = 'CODAPL'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = N  
+:eitem.
+
+:item      name      = CODEMP
+           date      = '04/13/2025' time = '15:43:18' type = BIN 
+           bytes     = 00004      decimals = 00     evensql = N  
+           desc      = 'CODIGO DA EMPRESA'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = LEA     numsep = N  
+:eitem.
+
+:item      name      = CODGRU
+           date      = '04/13/2025' time = '15:43:18' type = BIN 
+           bytes     = 00002      decimals = 00     evensql = N  
+           desc      = 'CODGRU'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:eitem.
+
+:item      name      = CODITE
+           date      = '04/13/2025' time = '15:43:18' type = BIN 
+           bytes     = 00002      decimals = 00     evensql = N  
+           desc      = 'ITEM'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:eitem.
+
+:item      name      = CODSIS
+           date      = '04/13/2025' time = '15:43:18' type = BIN 
+           bytes     = 00002      decimals = 00     evensql = N  
+           desc      = 'CODSYS'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:eitem.
+
+:item      name      = CODUSO
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00001      decimals = 00     evensql = N  
+           desc      = 'CODUSU'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = CODUSU
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00008      decimals = 00     evensql = N  
+           desc      = 'CODUSU'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = DATABASE
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00010      decimals = 00     evensql = N  
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = DAT_ABERTURA
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00010      decimals = 00     evensql = N  
+           desc      = 'DATA DE ABERTURA DA CONTA'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = DES_TRANSACAO
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00040      decimals = 00     evensql = N  
+           desc      = 'DESCRICAO DA TRANSACAO'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = N  
+:eitem.
+
+:item      name      = DTH_TRANSACAO
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00010      decimals = 00     evensql = N  
+           desc      = 'DATA DA TRANSACAO'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = GRUFUC
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00064      decimals = 00     evensql = N  
+           desc      = 'NOME DO GRUPO/FUNCAO'
+:mapedits  fillchar  = ' '
+           inputreq  = N    justify = N  
+:eitem.
+
+:item      name      = MNUEMP
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00015      decimals = 00     evensql = N  
+           desc      = 'MNEMONICO DA EMPRESA'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = NOM_TITULAR
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00050      decimals = 00     evensql = N  
+           desc      = 'NOME DO TITULAR DA CONTA'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = N  
+:eitem.
+
+:item      name      = NOMSIS
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00032      decimals = 00     evensql = N  
+           desc      = 'NOME DO SISTEMA'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = N  
+:eitem.
+
+:item      name      = NUM_CONTA
+           date      = '04/13/2025' time = '15:43:18' type = BIN 
+           bytes     = 00004      decimals = 00     evensql = N  
+           desc      = 'NUMERO DA CONTA CORRENTE'
+:mapedits  fillchar  = '0'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:eitem.
+
+:item      name      = NUM_TRANSACAO
+           date      = '04/13/2025' time = '15:43:18' type = BIN 
+           bytes     = 00004      decimals = 00     evensql = N  
+           desc      = 'NUMERO DA TRANSACAO'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = RIG
+           currsymb  = N    sign = N       numsep = N  
+:eitem.
+
+:item      name      = PASSWORD
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00008      decimals = 00     evensql = N  
+           desc      = 'CODIGO DO USUARIO'
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = PROCESSO
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00010      decimals = 00     evensql = N  
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = SH3APPL
+           date      = '04/13/2025' time = '15:43:18' type = CHA 
+           bytes     = 00002      decimals = 00     evensql = N  
+:mapedits  fillchar  = 'N'
+           inputreq  = N    justify = LEF
+:eitem.
+
+:item      name      = SH3LIT
