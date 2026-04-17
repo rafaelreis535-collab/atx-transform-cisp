@@ -46,6 +46,29 @@ phases:
       - python mcp_client.py > /tmp/mcp_server.log 2>&1 &
       - MCP_PID=$!
       - echo "MCP server started with PID $MCP_PID"
+      - echo "Configuring MCP for ATX in CodeBuild..."
+      - mkdir -p ~/.aws/atx
+      - |
+        cat > ~/.aws/atx/mcp.json << EOFMCP
+        {
+          "mcpServers": {
+            "aic-modernization": {
+              "command": "python",
+              "args": ["$PWD/mcp_client.py"],
+              "env": {
+                "MODERNIZATION_API_URL": "$MODERNIZATION_API_URL",
+                "MODERNIZATION_API_KEY": "$MODERNIZATION_API_KEY",
+                "MODERNIZATION_ORG_ID": "$MODERNIZATION_ORG_ID",
+                "MODERNIZATION_LLM_PROVIDER": "anthropic",
+                "MODERNIZATION_LLM_MODEL": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "MODERNIZATION_OUTPUT_LANGUAGE": "$MODERNIZATION_OUTPUT_LANGUAGE"
+              }
+            }
+          }
+        }
+        EOFMCP
+      - echo "MCP configuration created at ~/.aws/atx/mcp.json"
+      - cat ~/.aws/atx/mcp.json
       - sleep 5
       
       - echo "Running ATX transformation with documentation generation..."
