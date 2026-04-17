@@ -62,6 +62,48 @@ def create_zip_from_directory(source_dir: str, output_zip: str) -> bool:
         return False
 
 
+def find_project_by_partial_name(partial_name: str) -> Optional[Dict[str, Any]]:
+    """Search for a project by partial name match.
+    
+    Args:
+        partial_name: Partial name to search for (e.g., "banking")
+        
+    Returns:
+        Project dict if found, None otherwise
+    """
+    log(f"Searching for projects containing: {partial_name}")
+    
+    offset = 0
+    limit = 100
+    
+    while True:
+        result_json = mcp_client.list_projects(limit=limit, offset=offset)
+        result = json.loads(result_json)
+        
+        if "error" in result:
+            log(f"Error listing projects: {result['error']}", "ERROR")
+            return None
+        
+        items = result.get("items", [])
+        
+        # Search for project by partial name (case-insensitive)
+        partial_lower = partial_name.lower()
+        for project in items:
+            project_name = project.get("name", "")
+            if partial_lower in project_name.lower():
+                log(f"Found project with matching name: {project_name} (ID: {project.get('id')})")
+                return project
+        
+        # Check if there are more pages
+        if not result.get("has_more", False):
+            break
+            
+        offset += limit
+    
+    log(f"No project found containing '{partial_name}'", "WARNING")
+    return None
+
+
 def main() -> int:
     """Main workflow."""
     # Get PROJECT_PATH from environment
@@ -90,8 +132,13 @@ def main() -> int:
     log(f"Project name: {project_name}")
     log("=" * 60)
     
-    # Check if project exists
+    # Check if project exists by exact name first
     existing_project = find_project_by_name(project_name)
+    
+    # If not found by exact name, try partial match
+    if not existing_project:
+        log(f"Exact match not found, trying partial match...")
+        existing_project = find_project_by_partial_name(project_name)
     
     if not existing_project:
         log(f"Project '{project_name}' does not exist yet", "INFO")
