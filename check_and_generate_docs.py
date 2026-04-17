@@ -76,6 +76,8 @@ def find_project_by_partial_name(partial_name: str) -> Optional[Dict[str, Any]]:
     
     offset = 0
     limit = 100
+    all_projects = []
+    matches = []
     
     while True:
         result_json = mcp_client.list_projects(limit=limit, offset=offset)
@@ -86,20 +88,35 @@ def find_project_by_partial_name(partial_name: str) -> Optional[Dict[str, Any]]:
             return None
         
         items = result.get("items", [])
+        all_projects.extend(items)
         
         # Search for project by partial name (case-insensitive)
         partial_lower = partial_name.lower()
         for project in items:
             project_name = project.get("name", "")
             if partial_lower in project_name.lower():
-                log(f"Found project with matching name: {project_name} (ID: {project.get('id')})")
-                return project
+                matches.append(project)
         
         # Check if there are more pages
         if not result.get("has_more", False):
             break
             
         offset += limit
+    
+    # Log all projects found
+    log(f"Total projects in organization: {len(all_projects)}")
+    if all_projects:
+        log("All projects:")
+        for idx, proj in enumerate(all_projects, 1):
+            log(f"  {idx}. {proj.get('name')} (ID: {proj.get('id')})")
+    
+    # Log matches
+    if matches:
+        log(f"Found {len(matches)} project(s) matching '{partial_name}':")
+        for idx, proj in enumerate(matches, 1):
+            log(f"  {idx}. {proj.get('name')} (ID: {proj.get('id')})")
+        # Return first match
+        return matches[0]
     
     log(f"No project found containing '{partial_name}'", "WARNING")
     return None
