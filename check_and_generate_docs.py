@@ -122,9 +122,13 @@ def main() -> int:
         log("MODERNIZATION_ORG_ID environment variable not set", "ERROR")
         return 1
     
-    # Derive project name
-    project_name = get_project_name_from_path(project_path)
-    log(f"Project name derived from PROJECT_PATH: {project_name}")
+    # Get project name from environment variable or derive from path
+    project_name = os.environ.get("MODERNIZATION_PROJECT_NAME")
+    if project_name:
+        log(f"Using project name from MODERNIZATION_PROJECT_NAME: {project_name}")
+    else:
+        project_name = get_project_name_from_path(project_path)
+        log(f"Project name derived from PROJECT_PATH: {project_name}")
     
     log("=" * 60)
     log("Checking if project already exists...")

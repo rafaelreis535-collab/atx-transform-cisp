@@ -17,13 +17,21 @@ Generate full documentation for a legacy codebase using the `aic-modernization` 
 
 ### 1. Get project name
 
-Extract the project name from the PROJECT_PATH environment variable (defined in buildspec.yml):
+Get the project name from the MODERNIZATION_PROJECT_NAME environment variable (defined in buildspec.yml):
+
+```bash
+echo "$MODERNIZATION_PROJECT_NAME"
+```
+
+If MODERNIZATION_PROJECT_NAME is not set, fallback to extracting from PROJECT_PATH:
 
 ```bash
 basename "$PROJECT_PATH"
 ```
 
 This extracts the directory name from PROJECT_PATH (e.g., "banking-example" from "./banking-example").
+
+**Recommended:** Always set MODERNIZATION_PROJECT_NAME explicitly in buildspec.yml to ensure consistent project naming.
 
 ### 2. Read the codebase
 
@@ -35,12 +43,15 @@ Call `create_project` using the project name from step 1:
 
 ```json
 {
-  "name": "<project-PROJECT_PATH>",
+  "name": "<MODERNIZATION_PROJECT_NAME>",
   "description": "Brief description of the system and its modules."
 }
 ```
 
 > Name must match `^[\w\s:\/_\-]*$` — no parentheses, dots, or special symbols.
+>
+> **Important:** Use the value from MODERNIZATION_PROJECT_NAME environment variable.
+> Example: "Banking Java Full Documentation"
 
 Save the returned `id` — it is required for all subsequent steps.
 

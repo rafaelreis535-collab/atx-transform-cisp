@@ -3,6 +3,7 @@ version: 0.2
 env:
   variables:
     PROJECT_PATH: "./banking-example"
+    MODERNIZATION_PROJECT_NAME: "Banking Java Full Documentation"
     MODERNIZATION_API_URL: "https://aic-modernization-api.compass.uol/"
     MODERNIZATION_OUTPUT_LANGUAGE: "en_US"
   secrets-manager:
@@ -59,6 +60,7 @@ phases:
                 "MODERNIZATION_API_URL": "$MODERNIZATION_API_URL",
                 "MODERNIZATION_API_KEY": "$MODERNIZATION_API_KEY",
                 "MODERNIZATION_ORG_ID": "$MODERNIZATION_ORG_ID",
+                "MODERNIZATION_PROJECT_NAME": "$MODERNIZATION_PROJECT_NAME",
                 "MODERNIZATION_LLM_PROVIDER": "anthropic",
                 "MODERNIZATION_LLM_MODEL": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "MODERNIZATION_OUTPUT_LANGUAGE": "$MODERNIZATION_OUTPUT_LANGUAGE"

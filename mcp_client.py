@@ -56,6 +56,7 @@ API_BASE_URL: str = os.environ.get("MODERNIZATION_API_URL", "https://aic-moderni
 API_KEY: str = os.environ.get("MODERNIZATION_API_KEY", "")
 _org_id_raw: str = os.environ.get("MODERNIZATION_ORG_ID", "")
 ORG_ID: Optional[int] = int(_org_id_raw) if _org_id_raw.strip() else None
+PROJECT_NAME: Optional[str] = os.environ.get("MODERNIZATION_PROJECT_NAME") or None
 LLM_PROVIDER: Optional[str] = os.environ.get("MODERNIZATION_LLM_PROVIDER") or None
 LLM_MODEL: Optional[str] = os.environ.get("MODERNIZATION_LLM_MODEL") or None
 OUTPUT_LANGUAGE: str = os.environ.get("MODERNIZATION_OUTPUT_LANGUAGE") or "en_US"
@@ -136,13 +137,19 @@ except ImportError as _exc:
     )
     sys.exit(1)
 
+# Build instructions with project name if available
+instructions = (
+    "Tools for interacting with the AI Cockpit Modernization API. "
+    "Use these tools to manage projects, trigger documentation generation tasks, "
+    "monitor task progress, and retrieve generated documentation."
+)
+if PROJECT_NAME:
+    instructions += f"\n\nProject Name: {PROJECT_NAME}\n"
+    instructions += "When creating a project, use this name from the MODERNIZATION_PROJECT_NAME environment variable."
+
 mcp = FastMCP(
     "modernization-api",
-    instructions=(
-        "Tools for interacting with the AI Cockpit Modernization API. "
-        "Use these tools to manage projects, trigger documentation generation tasks, "
-        "monitor task progress, and retrieve generated documentation."
-    ),
+    instructions=instructions,
 )
 
 
@@ -151,20 +158,27 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 @mcp.tool()
 def create_project(
-    name: str,
+    name: Optional[str] = None,
     description: Optional[str] = None
 ) -> str:
     """Create a new modernization project.
 
     Args:
         name: Human-readable project name (must be unique within the organization).
+              If not provided, uses MODERNIZATION_PROJECT_NAME environment variable.
         description: Optional free-text description of the project.
 
     Returns:
         JSON string with the created project details including its ``id``.
     """
+    # Use provided name or fallback to PROJECT_NAME from environment
+    project_name = name or PROJECT_NAME
+    
+    if not project_name:
+        return json.dumps({"error": "Project name is required. Provide 'name' parameter or set MODERNIZATION_PROJECT_NAME environment variable."})
+    
     payload: Dict[str, Any] = {
-        "name": name,
+        "name": PROJECT_NAME,
         "organization_id": ORG_ID,
     }
     if description:
@@ -174,7 +188,7 @@ def create_project(
 
     try:
         result = _post("/projects", payload)
-        logger.info("Created project id=%s name=%s", result.get("id"), name)
+        logger.info("Created project id=%s name=%s", result.get("id"), project_name)
         return json.dumps(result, default=str)
     except RuntimeError as exc:
         return json.dumps({"error": str(exc)})
@@ -510,9 +524,10 @@ def main() -> None:
 
     logger.info(
         "Starting MCP server 'modernization-api' targeting %s "
-        "(org_id=%s, llm_provider=%s, llm_model=%s, output_language=%s)",
+        "(org_id=%s, project_name=%s, llm_provider=%s, llm_model=%s, output_language=%s)",
         API_BASE_URL,
         ORG_ID,
+        PROJECT_NAME or "<not-set>",
         LLM_PROVIDER or "<api-default>",
         LLM_MODEL or "<api-default>",
         OUTPUT_LANGUAGE,
