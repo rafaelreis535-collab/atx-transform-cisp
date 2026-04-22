@@ -81,7 +81,7 @@ phases:
           echo "Skipping ATX transformation"
         elif [ "${CHECK_EXIT_CODE:-0}" -eq 1 ]; then
           echo "Project does not exist yet, running ATX transformation..."
-          atx custom def exec -n VisualAge-COBOL-to-Java-Modernization -p $PROJECT_PATH --configuration '{"additionalPlanContext":"Convert COBOL to java preserving behavior. After transformation, use the generate-aic-docs skill to generate full documentation for the codebase."}' -x -t
+          atx custom def exec -n VisualAge-COBOL-to-Java-Modernization -p $PROJECT_PATH --configuration '{"additionalPlanContext":"Convert COBOL to java preserving behavior."}' -x -t
         else
           echo "Error occurred during project check or documentation generation"
           exit ${CHECK_EXIT_CODE:-1}
