@@ -1,0 +1,106 @@
+version: 0.2
+
+env:
+  variables:
+    PROJECT_PATH: "./example-project"
+    MODERNIZATION_PROJECT_NAME: "Example Project Documentation"
+    MODERNIZATION_API_URL: "https://aic-modernization-api.compass.uol/"
+    MODERNIZATION_OUTPUT_LANGUAGE: "en_US"
+  secrets-manager:
+    MODERNIZATION_API_KEY: "aic-modernization:api-key"
+    MODERNIZATION_ORG_ID: "aic-modernization:org-id"
+  # Optional: Uncomment to use specific LLM provider/model
+  # parameter-store:
+  #   MODERNIZATION_LLM_PROVIDER: "/codebuild/modernization/llm-provider"
+  #   MODERNIZATION_LLM_MODEL: "/codebuild/modernization/llm-model"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+      python: 3.11
+    commands:
+      - echo "Preparing environment..."
+      - ls -la
+
+      - echo "Installing Python dependencies..."
+      - pip install --upgrade pip
+      - pip install mcp requests pyyaml
+
+      - echo "Setting up ATX runtime..."
+      - chmod -R +x atx-runtime
+      - export PATH=$PWD/atx-runtime:$PATH
+
+      - echo "Validating ATX..."
+      - which atx
+      - atx --version || true
+
+  pre_build:
+    commands:
+      - echo "Checking project structure..."
+      - ls -la
+      - ls -la $PROJECT_PATH
+
+  build:
+    commands:
+      - echo "Starting MCP server in background..."
+      - python mcp_client.py > /tmp/mcp_server.log 2>&1 &
+      - MCP_PID=$!
+      - echo "MCP server started with PID $MCP_PID"
+      - echo "Configuring MCP for ATX in CodeBuild..."
+      - mkdir -p ~/.aws/atx
+      - |
+        cat > ~/.aws/atx/mcp.json << EOFMCP
+        {
+          "mcpServers": {
+            "aic-modernization": {
+              "command": "python",
+              "args": ["$PWD/mcp_client.py"],
+              "env": {
+                "MODERNIZATION_API_URL": "$MODERNIZATION_API_URL",
+                "MODERNIZATION_API_KEY": "$MODERNIZATION_API_KEY",
+                "MODERNIZATION_ORG_ID": "$MODERNIZATION_ORG_ID",
+                "MODERNIZATION_PROJECT_NAME": "$MODERNIZATION_PROJECT_NAME",
+                "MODERNIZATION_LLM_PROVIDER": "anthropic",
+                "MODERNIZATION_LLM_MODEL": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "MODERNIZATION_OUTPUT_LANGUAGE": "$MODERNIZATION_OUTPUT_LANGUAGE"
+              }
+            }
+          }
+        }
+        EOFMCP
+      - echo "MCP configuration created at ~/.aws/atx/mcp.json"
+      - cat ~/.aws/atx/mcp.json
+      - sleep 5
+      
+      - echo "Checking if project already exists..."
+      - python check_and_generate_docs.py || CHECK_EXIT_CODE=$?
+      - |
+        if [ "${CHECK_EXIT_CODE:-0}" -eq 0 ]; then
+          echo "Project already exists and documentation was generated successfully"
+          echo "Skipping ATX transformation"
+        elif [ "${CHECK_EXIT_CODE:-0}" -eq 1 ]; then
+          echo "Project does not exist yet, running ATX transformation..."
+          atx custom def exec -n VisualAge-COBOL-to-Java-Modernization -p $PROJECT_PATH --configuration '{"additionalPlanContext":"Convert COBOL to java preserving behavior."}' -x -t
+        else
+          echo "Error occurred during project check or documentation generation"
+          exit ${CHECK_EXIT_CODE:-1}
+        fi
+      
+      - echo "Stopping MCP server..."
+      - kill $MCP_PID || true
+      - echo "MCP server logs:"
+      - cat /tmp/mcp_server.log || true
+
+  post_build:
+    commands:
+      - echo "Build finished"
+      - echo "Preparing artifacts..."
+      - mkdir -p output
+      - cp -r $PROJECT_PATH output/ || true
+      - ls -R output
+
+artifacts:
+  files:
+    - 'output/**/*'
+  name: atx-transform-output
